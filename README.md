@@ -5,7 +5,9 @@ This repository contains the work completed for Lecture 2, including the Snake G
 lab_report_document_report
 
 # Task 2 
-snake_game.html, snake_game_report.html
+snake_game.html
+snake_game_report.html
 
 # Task 3
-video_presentation_slides, presentation_prompt_report
+video_presentation_slides
+presentation_prompt_report
