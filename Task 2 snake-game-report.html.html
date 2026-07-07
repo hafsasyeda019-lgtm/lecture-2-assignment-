@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake Game — Project Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --deep: #0a1628;
+    --ocean: #0d2b4e;
+    --teal: #0e7490;
+    --aqua: #22d3ee;
+    --glow: #67e8f9;
+    --foam: #e0f7fa;
+    --white: #f0faff;
+    --muted: #94a3b8;
+    --accent: #f59e0b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--deep);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.75;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(14,116,144,.25) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(6,78,59,.2) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 80% at 50% 50%, rgba(13,43,78,.6) 0%, transparent 80%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Bubbles */
+  .bubbles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .bubble {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(103,232,249,.06);
+    border: 1px solid rgba(103,232,249,.12);
+    animation: rise linear infinite;
+  }
+  @keyframes rise {
+    0%   { transform: translateY(110vh) scale(1); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: .4; }
+    100% { transform: translateY(-10vh) scale(1.1); opacity: 0; }
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 80px 0 60px;
+    position: relative;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(34,211,238,.1);
+    border: 1px solid rgba(34,211,238,.3);
+    color: var(--aqua);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    padding: 6px 18px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(3rem, 8vw, 5.5rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -.03em;
+    background: linear-gradient(135deg, var(--white) 30%, var(--aqua) 70%, var(--glow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--muted);
+    margin-bottom: 48px;
+  }
+
+  /* Info cards row */
+  .info-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 72px;
+  }
+  .info-card {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(34,211,238,.12);
+    border-radius: 14px;
+    padding: 20px 18px;
+    transition: border-color .3s, background .3s;
+  }
+  .info-card:hover {
+    background: rgba(34,211,238,.07);
+    border-color: rgba(34,211,238,.3);
+  }
+  .info-card .label {
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--aqua);
+    margin-bottom: 6px;
+  }
+  .info-card .value {
+    font-size: .9rem;
+    font-weight: 500;
+    color: var(--white);
+  }
+
+  /* Sections */
+  .section {
+    margin-bottom: 64px;
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity .6s ease, transform .6s ease;
+  }
+  .section.visible { opacity: 1; transform: none; }
+
+  .section-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+  .section h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 20px;
+    position: relative;
+    padding-left: 20px;
+  }
+  .section h2::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 6px;
+    width: 4px; height: calc(100% - 8px);
+    background: linear-gradient(var(--aqua), var(--teal));
+    border-radius: 4px;
+  }
+  .section h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--aqua);
+    margin: 24px 0 10px;
+  }
+  .section p {
+    color: #cbd5e1;
+    margin-bottom: 14px;
+    font-size: .95rem;
+  }
+
+  /* Bullet list */
+  .blist {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .blist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: #cbd5e1;
+    font-size: .95rem;
+  }
+  .blist li::before {
+    content: '▸';
+    color: var(--aqua);
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: .8rem;
+  }
+
+  /* Difficulty table */
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
+  .diff-table th {
+    background: rgba(34,211,238,.12);
+    color: var(--aqua);
+    font-family: 'Syne', sans-serif;
+    font-size: .8rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(34,211,238,.2);
+  }
+  .diff-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    font-size: .92rem;
+    color: #cbd5e1;
+  }
+  .diff-table tr:hover td { background: rgba(34,211,238,.04); }
+  .diff-table td:first-child { font-weight: 500; color: var(--white); }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: .78rem;
+    font-weight: 500;
+  }
+  .badge-easy   { background: rgba(34,197,94,.15);  color: #4ade80; border: 1px solid rgba(34,197,94,.3); }
+  .badge-medium { background: rgba(245,158,11,.15); color: #fbbf24; border: 1px solid rgba(245,158,11,.3); }
+  .badge-hard   { background: rgba(239,68,68,.15);  color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+
+  /* Achievement card */
+  .achievement {
+    background: linear-gradient(135deg, rgba(245,158,11,.08), rgba(34,211,238,.06));
+    border: 1px solid rgba(245,158,11,.25);
+    border-radius: 16px;
+    padding: 24px;
+    margin-top: 12px;
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+  }
+  .achievement .icon {
+    font-size: 2.2rem;
+    flex-shrink: 0;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(245,158,11,.5)); }
+    50%      { transform: scale(1.1); filter: drop-shadow(0 0 14px rgba(245,158,11,.9)); }
+  }
+  .achievement h4 {
+    font-family: 'Syne', sans-serif;
+    color: var(--accent);
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+  .achievement p { color: #cbd5e1; font-size: .9rem; margin: 0; }
+
+  /* Tech pills */
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .pill {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(34,211,238,.2);
+    color: var(--glow);
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: .82rem;
+    font-weight: 500;
+    letter-spacing: .04em;
+    transition: background .2s, border-color .2s;
+  }
+  .pill:hover {
+    background: rgba(34,211,238,.1);
+    border-color: var(--aqua);
+  }
+
+  /* Conclusion card */
+  .conclusion-card {
+    background: linear-gradient(135deg, rgba(14,116,144,.2), rgba(6,78,59,.15));
+    border: 1px solid rgba(34,211,238,.2);
+    border-radius: 20px;
+    padding: 36px;
+    text-align: center;
+  }
+  .conclusion-card .emoji { font-size: 2.5rem; margin-bottom: 16px; }
+  .conclusion-card p { color: #cbd5e1; font-size: 1rem; max-width: 560px; margin: 0 auto; }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(34,211,238,.2), transparent);
+    margin: 48px 0;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 32px 0 0;
+    font-size: .8rem;
+    color: rgba(148,163,184,.4);
+    letter-spacing: .08em;
+  }
+
+  @media (max-width: 600px) {
+    .hero { padding: 48px 0 40px; }
+    .achievement { flex-direction: column; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Animated bubbles -->
+<div class="bubbles" id="bubbles"></div>
+
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">Project Report</div>
+    <h1>🐍 Snake Game</h1>
+    <p class="hero-sub">Web Application — Magical Underwater Edition</p>
+
+    <div class="info-row">
+      <div class="info-card">
+        <div class="label">Theme</div>
+        <div class="value">Magical Underwater</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Framework</div>
+        <div class="value">React.js (ES6+)</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Deployment</div>
+        <div class="value">Vercel / Netlify</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Type</div>
+        <div class="value">Web Application</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. Overview -->
+  <div class="section">
+    <div class="section-number">01</div>
+    <h2>Project Overview</h2>
+    <p>This project reimagines the classic Snake Game as a modern, premium-quality web application. Instead of the traditional retro style, the game was designed with a <strong style="color:var(--aqua)">magical underwater theme</strong> that provides a relaxing and visually appealing experience.</p>
+    <p>The game features a cute animated snake swimming among floating bubbles, soft lighting effects, colorful food items, and elegant visual transitions — feeling more like a small indie game than a basic student project.</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 2. Objectives -->
+  <div class="section">
+    <div class="section-number">02</div>
+    <h2>Objectives</h2>
+    <ul class="blist">
+      <li>Create a visually attractive and modern version of the classic Snake Game</li>
+      <li>Provide a smooth and responsive gaming experience</li>
+      <li>Implement a player profile and authentication system</li>
+      <li>Maintain a persistent leaderboard and high-score tracking</li>
+      <li>Introduce achievements and rewards for competitive players</li>
+      <li>Ensure full responsiveness on mobile, tablet, and desktop</li>
+      <li>Make the application deployment-ready for Vercel and Netlify</li>
+    </ul>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 3. Features -->
+  <div class="section">
+    <div class="section-number">03</div>
+    <h2>Key Features</h2>
+
+    <h3>👤 User Management</h3>
+    <ul class="blist">
+      <li>Login and Logout system</li>
+      <li>Player profile management</li>
+      <li>Personalized player dashboard</li>
+      <li>Display of current player name</li>
+    </ul>
+
+    <h3>🎮 Gameplay</h3>
+    <ul class="blist">
+      <li>Start, Continue, and New Game buttons</li>
+      <li>Pause and Resume functionality</li>
+      <li>Real-time score tracking</li>
+      <li>Smooth snake movement and controls</li>
+    </ul>
+
+    <h3>⚡ Difficulty Levels</h3>
+    <p style="margin-top:4px">Gameplay is identical across all levels — only the snake speed changes:</p>
+    <table class="diff-table">
+      <thead>
+        <tr><th>Level</th><th>Speed</th><th>Best For</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-easy">Easy</span></td>
+          <td>Slow</td>
+          <td>Beginners & casual play</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Normal</td>
+          <td>Balanced gameplay</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-hard">Hard</span></td>
+          <td>Fast</td>
+          <td>Competitive players</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>🏆 Leaderboard System</h3>
+    <ul class="blist">
+      <li>Persistent leaderboard with Local Storage or database support</li>
+      <li>Highest score tracking</li>
+      <li>Competitive ranking system</li>
+    </ul>
+
+    <h3>💎 Achievement System</h3>
+    <div class="achievement">
+      <div class="icon">💎</div>
+      <div>
+        <h4>Diamond Achiever Badge</h4>
+        <p>Awarded to players who surpass the current highest score. A diamond badge appears beside the player's name, and a decorative glowing light bulb on the side of the screen turns on to celebrate the achievement.</p>
+      </div>
+    </div>
+
+    <h3>🔊 Audio Features</h3>
+    <ul class="blist">
+      <li>Sound effects for gameplay interactions</li>
+      <li>Optional background music</li>
+      <li>Mute and unmute controls</li>
+    </ul>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 4. Design -->
+  <div class="section">
+    <div class="section-number">04</div>
+    <h2>Design & User Interface</h2>
+    <p>The game follows a <strong style="color:var(--aqua)">Magical Underwater theme</strong> designed to create a relaxing and engaging atmosphere. Visual elements include:</p>
+    <ul class="blist">
+      <li>Floating bubbles and soft lighting effects</li>
+      <li>Particle animations and smooth transitions</li>
+      <li>Cute animated snake with colorful food items</li>
+      <li>Elegant gradients and multiple underwater backgrounds</li>
+    </ul>
+    <p>Multiple underwater backgrounds allow players to enjoy different aesthetic environments while maintaining a consistent gameplay experience.</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 5. Technical -->
+  <div class="section">
+    <div class="section-number">05</div>
+    <h2>Technical Implementation</h2>
+    <p>Built using modern web technologies:</p>
+    <div class="pills">
+      <span class="pill">HTML5</span>
+      <span class="pill">CSS3</span>
+      <span class="pill">JavaScript ES6+</span>
+      <span class="pill">React.js</span>
+      <span class="pill">Local Storage API</span>
+      <span class="pill">CSS Animations</span>
+      <span class="pill">Responsive Design</span>
+      <span class="pill">State Management</span>
+    </div>
+    <p style="margin-top:20px">The project follows a professional <strong style="color:var(--white)">component-based architecture</strong>, ensuring maintainability, scalability, and code readability.</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 6. Challenges -->
+  <div class="section">
+    <div class="section-number">06</div>
+    <h2>Challenges Faced</h2>
+
+    <h3>🐍 Food Consumption Mechanism</h3>
+    <p>Implementing accurate collision detection, smooth snake growth, and proper score updates required careful handling of game state and movement logic — one of the most technically demanding aspects of the project.</p>
+
+    <h3>🚀 Deployment Process</h3>
+    <p>Preparing the application for production involved optimizing assets, handling configuration settings, and ensuring full compatibility with Vercel and Netlify hosting platforms.</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 7. Learning -->
+  <div class="section">
+    <div class="section-number">07</div>
+    <h2>Learning Outcomes</h2>
+    <p>This project significantly improved both technical skills and the ability to write clear project specifications. Key areas of growth:</p>
+    <ul class="blist">
+      <li>Front-end development with React.js</li>
+      <li>UI/UX design principles</li>
+      <li>State management techniques</li>
+      <li>Local data persistence strategies</li>
+      <li>Responsive web design</li>
+      <li>Deployment and hosting workflows</li>
+      <li>Problem-solving and debugging</li>
+    </ul>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 8. Conclusion -->
+  <div class="section">
+    <div class="section-number">08</div>
+    <h2>Conclusion</h2>
+    <div class="conclusion-card">
+      <div class="emoji">🌊</div>
+      <p>The final product successfully transforms the traditional Snake Game into a modern, visually appealing, and production-ready web application. Through attractive design, smooth animations, player achievements, responsive gameplay, and persistent score tracking, the project delivers an enjoyable experience for both casual and competitive players.</p>
+    </div>
+  </div>
+
+  <div class="footer">Snake Game Web Application — Project Report &nbsp;·&nbsp; Built with React.js</div>
+</div>
+
+<script>
+  // Generate bubbles
+  const container = document.getElementById('bubbles');
+  for (let i = 0; i < 18; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const size = 20 + Math.random() * 60;
+    b.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random()*100}%;
+      animation-duration:${12+Math.random()*18}s;
+      animation-delay:${-Math.random()*20}s;
+    `;
+    container.appendChild(b);
+  }
+
+  // Scroll reveal
+  const sections = document.querySelectorAll('.section');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  sections.forEach(s => io.observe(s));
+</script>
+</body>
+</html>
